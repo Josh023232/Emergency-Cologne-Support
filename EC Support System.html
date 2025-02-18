@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support System Emergency Cologne</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 80%;
+            max-width: 800px;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            text-align: center;
+        }
+        .ticket-form, .admin-area {
+            margin-bottom: 20px;
+        }
+        .ticket-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .ticket-table th, .ticket-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .ticket-table th {
+            background-color: #f2f2f2;
+        }
+        input[type="text"], textarea, button, select {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .admin-button {
+            margin-top: 20px;
+        }
+        .admin-area {
+            display: none;
+        }
+        .admin-tickets {
+            margin-top: 20px;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Support System Emergency Cologne</h1>
+
+        <div class="ticket-form">
+            <h2>Neues Ticket erstellen</h2>
+            <form id="ticketForm">
+                <input type="text" id="title" name="title" placeholder="Titel" required>
+                <textarea id="description" name="description" placeholder="Beschreibung" required></textarea>
+                <select id="supportType" required>
+                    <option value="" disabled selected>Support-Art auswählen</option>
+                    <option value="Generell">Generell</option>
+                    <option value="Partnerschaft">Partnerschaft</option>
+                    <option value="Discord Server">Discord Server</option>
+                    <option value="Spiel Support">Spiel Support</option>
+                </select>
+                <select id="priority" required>
+                    <option value="" disabled selected>Priorität auswählen</option>
+                    <option value="Niedrig">Niedrig</option>
+                    <option value="Mittel">Mittel</option>
+                    <option value="Hoch">Hoch</option>
+                </select>
+                <button type="submit">Ticket erstellen</button>
+            </form>
+            <p id="ticketMessage"></p>
+        </div>
+
+        <div class="ticket-list">
+            <h2>Deine Tickets</h2>
+            <table class="ticket-table">
+                <thead>
+                    <tr>
+                        <th>Titel</th>
+                        <th>Beschreibung</th>
+                        <th>Support-Art</th>
+                        <th>Priorität</th>
+                        <th>Status</th>
+                        <th>Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody id="tickets">
+                    <!-- Tickets will be dynamically inserted here -->
+                </tbody>
+            </table>
+        </div>
+
+        <button class="admin-button" onclick="showAdminPrompt()">Zum Administratorbereich</button>
+
+        <div class="admin-area" id="adminArea">
+            <h2>Admin Bereich</h2>
+            <input type="password" id="adminCode" placeholder="Code eingeben">
+            <button onclick="checkAdminCode()">Zugriff anfordern</button>
+            <div class="admin-tickets" id="adminTickets"></div>
+        </div>
+
+        <div class="footer">
+            <a href="https://emergency-cologne.onepage.me/" target="_blank">Besuche unsere Hauptseite</a>
+        </div>
+    </div>
+
+    <audio id="notificationSound" src="path/to/notification.mp3"></audio>
+
+    <script>
+        let tickets = [];
+        let ticketCounter = 1;
+
+        document.getElementById('ticketForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            const supportType = document.getElementById('supportType').value;
+            const priority = document.getElementById('priority').value;
+            const ticketId = ticketCounter++;
+            addTicket(ticketId, title, description, supportType, priority, 'In Bearbeitung');
+            document.getElementById('ticketMessage').textContent = 'Dein Ticket wurde erfolgreich erstellt.';
+            document.getElementById('ticketForm').reset();
+        });
+
+        function addTicket(id, title, description, supportType, priority, status) {
+            const ticket = { id, title, description, supportType, priority, status };
+            tickets.push(ticket);
+            displayTickets();
+            displayAdminTickets();
+        }
+
+        function displayTickets() {
+            const ticketList = document.getElementById('tickets');
+            ticketList.innerHTML = '';
+            tickets.forEach(ticket => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${ticket.title}</td>
+                    <td>${ticket.description}</td>
+                    <td>${ticket.supportType}</td>
+                    <td>${ticket.priority}</td>
+                    <td>${ticket.status}</td>
+                    <td>
+                        <button onclick="editTicket(${ticket.id})">Bearbeiten</button>
+                        <button onclick="deleteTicket(${ticket.id})">Löschen</button>
+                    </td>
+                `;
+                ticketList.appendChild(row);
+            });
+        }
+
+        function editTicket(id) {
+            const ticket = tickets.find(t => t.id === id);
+            document.getElementById('title').value = ticket.title;
+            document.getElementById('description').value = ticket.description;
+            document.getElementById('supportType').value = ticket.supportType;
+            document.getElementById('priority').value = ticket.priority;
+            deleteTicket(id);
+        }
+
+        function deleteTicket(id) {
+            tickets = tickets.filter(ticket => ticket.id !== id);
+            displayTickets();
+            displayAdminTickets();
+        }
+
+        function showAdminPrompt() {
+            document.getElementById('adminArea').style.display = 'block';
+        }
+
+        function checkAdminCode() {
+            const code = document.getElementById('adminCode').value;
+            if (code === '1120') {
+                document.getElementById('adminTickets').innerHTML = '<h3>Offene und bearbeitete Tickets:</h3>';
+                displayAdminTickets();
+            } else {
+                alert('Falscher Code!');
+            }
+        }
+
+        function displayAdminTickets() {
+            const adminTicketList = document.getElementById('adminTickets');
+            adminTicketList.innerHTML = '<h3>Offene und bearbeitete Tickets:</h3>';
+            tickets.forEach(ticket => {
+                const ticketDiv = document.createElement('div');
+                ticketDiv.classList.add('ticket');
+                ticketDiv.innerHTML = `
+                    <h3>${ticket.title}</h3>
+                    <p>${ticket.description}</p>
+                    <p><strong>Support-Art:</strong> ${ticket.supportType}</p>
+                    <p><strong>Priorität:</strong> ${ticket.priority}</p>
+                    <p><strong>Status:</strong> ${ticket.status}</p>
+                    <div class="ticket-actions">
+                        <select onchange="updateTicketStatus(${ticket.id}, this.value)">
+                            <option value="In Bearbeitung" ${ticket.status === 'In Bearbeitung' ? 'selected' : ''}>In Bearbeitung</option>
+                            <option value="Erledigt" ${ticket.status === 'Erledigt' ? 'selected' : ''}>Erledigt</option>
+                        </select>
+                        <button onclick="sendMessage(${ticket.id})">Nachricht senden</button>
+                    </div>
+                `;
+                adminTicketList.appendChild(ticketDiv);
+            });
+        }
+
+        function updateTicketStatus(id, status) {
+            const ticket = tickets.find(t => t.id === id);
+            if (ticket) {
+                ticket.status = status;
+                displayTickets();
+                displayAdminTickets();
+            }
+        }
+
+        function sendMessage(id) {
+            const ticket = tickets.find(t => t.id === id);
+            if (ticket) {
+                const message = prompt('Nachricht an den Benutzer:');
+                if (message) {
+                    alert(`Nachricht gesendet: ${message}`);
+                    playNotificationSound();
+                }
+            }
+        }
+
+        function playNotificationSound() {
+            const notificationSound = document.getElementById('notificationSound');
+            notificationSound.play();
+        }
+    </script>
+</body>
+</html>
